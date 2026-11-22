@@ -21,11 +21,18 @@ class BigClock : public Component, public tessera::Plugin {
   // The screensaver's still larger date.
   void set_saver_date_font(font::Font *f) { saver_date_font_ = f; }
   font::Font *saver_date_font() const { return saver_date_font_; }
+  // AM/PM in a few sizes, smallest first, and a bold font for what plays on the music face.
+  void add_ampm_font(font::Font *f) { ampm_fonts_.push_back(f); }
+  const std::vector<font::Font *> &ampm_fonts() const { return ampm_fonts_; }
+  void set_title_font(font::Font *f) { title_font_ = f; }
+  font::Font *title_font() const { return title_font_; }
 
  protected:
   std::vector<font::Font *> fonts_;
   font::Font *date_font_{nullptr};
   font::Font *saver_date_font_{nullptr};
+  std::vector<font::Font *> ampm_fonts_;
+  font::Font *title_font_{nullptr};
 };
 
 }  // namespace esphome::big_clock

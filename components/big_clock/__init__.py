@@ -12,6 +12,8 @@ DEPENDENCIES = ["smart_display", "font"]
 CONF_FONTS = "fonts"
 CONF_DATE_FONT = "date_font"
 CONF_SAVER_DATE_FONT = "saver_date_font"
+CONF_AMPM_FONTS = "ampm_fonts"
+CONF_TITLE_FONT = "title_font"
 
 big_clock_ns = cg.esphome_ns.namespace("big_clock")
 BigClock = big_clock_ns.class_("BigClock", cg.Component)
@@ -22,6 +24,8 @@ CONFIG_SCHEMA = cv.Schema(
         cv.Optional(CONF_FONTS, default=[]): cv.ensure_list(cv.use_id(font.Font)),
         cv.Optional(CONF_DATE_FONT): cv.use_id(font.Font),
         cv.Optional(CONF_SAVER_DATE_FONT): cv.use_id(font.Font),
+        cv.Optional(CONF_AMPM_FONTS, default=[]): cv.ensure_list(cv.use_id(font.Font)),
+        cv.Optional(CONF_TITLE_FONT): cv.use_id(font.Font),
     }
 ).extend(cv.COMPONENT_SCHEMA)
 
@@ -35,4 +39,8 @@ async def to_code(config):
         cg.add(var.set_date_font(await cg.get_variable(config[CONF_DATE_FONT])))
     if CONF_SAVER_DATE_FONT in config:
         cg.add(var.set_saver_date_font(await cg.get_variable(config[CONF_SAVER_DATE_FONT])))
+    for font_id in config[CONF_AMPM_FONTS]:
+        cg.add(var.add_ampm_font(await cg.get_variable(font_id)))
+    if CONF_TITLE_FONT in config:
+        cg.add(var.set_title_font(await cg.get_variable(config[CONF_TITLE_FONT])))
     await smart_display.register_plugin(var, __file__)

@@ -1,6 +1,7 @@
 #include "big_clock.h"
 #include <algorithm>
 #include <cstdio>
+#include <cstdlib>
 #include <string>
 #include <vector>
 
@@ -27,15 +28,26 @@ static int text_w(const char *text, const lv_font_t *font) {
 static int ascent(const lv_font_t *font) { return font->line_height - font->base_line; }
 // Where a font's digits stand in its line, from the glyph of a 0: how far their top is below the line's top, and how
 // tall they are. The layout fits the digits themselves, not the empty space a line keeps above and below them.
-static void digit_box(const lv_font_t *font, int &top, int &h) {
+static void glyph_box(const lv_font_t *font, uint32_t letter, int &top, int &h) {
   lv_font_glyph_dsc_t g{};
-  if (lv_font_get_glyph_dsc(font, &g, '0', 0) && g.box_h > 0) {
+  if (lv_font_get_glyph_dsc(font, &g, letter, 0) && g.box_h > 0) {
     h = g.box_h;
     top = ascent(font) - g.box_h - g.ofs_y;
   } else {
     h = font->line_height;
     top = 0;
   }
+}
+static void digit_box(const lv_font_t *font, int &top, int &h) { glyph_box(font, '0', top, h); }
+static int cap_h(const lv_font_t *font) {
+  int top, h;
+  glyph_box(font, 'M', top, h);
+  return h;
+}
+static int cap_top(const lv_font_t *font) {
+  int top, h;
+  glyph_box(font, 'M', top, h);
+  return top;
 }
 static int digit_h(const lv_font_t *font) {
   int top, h;
@@ -84,9 +96,18 @@ class ClockView {
     // The time keeps a little air: it fills at most 85% of the height the date leaves (60% on the screensaver).
     const int room_h = (height_ - (date_h ? date_h + date_gap_ : 0)) * (saver ? 60 : 85) / 100;
 
-    // AM/PM: TITLE beside a big time, BODY beside a small one.
-    Font suffix_font = Font::TITLE;
-    if (twelve_) suffix_w_ = std::max(ui::text_width("AM", suffix_font), ui::text_width("PM", suffix_font));
+    // AM/PM: the largest of the plugin's own sizes whose capitals stand about a third as tall as the digits, else the
+    // screen's own fonts.
+    std::vector<const lv_font_t *> ampm;
+    for (auto it = plugin_->ampm_fonts().rbegin(); it != plugin_->ampm_fonts().rend(); ++it) ampm.push_back((*it)->get_lv_font());
+    ampm.push_back(ui::font(Font::TITLE));
+    ampm.push_back(ui::font(Font::BODY));
+    auto ampm_for = [&](int digits) {
+      for (const lv_font_t *f : ampm)
+        if (cap_h(f) * 100 <= digits * 38) return f;
+      return ampm.back();
+    };
+    auto ampm_w = [&](const lv_font_t *f) { return std::max(text_w("AM", f), text_w("PM", f)); };
 
     // The time's font: the largest of the plugin's own that fits, else the screen's VALUE font.
     const char *widest = twelve_ ? "12:59" : "23:59";
@@ -96,7 +117,7 @@ class ClockView {
     for (font::Font *f : plugin_->fonts()) sizes.push_back(f->get_lv_font());
     for (auto it = sizes.rbegin(); it != sizes.rend(); ++it) {
       const lv_font_t *f = *it;
-      int w = text_w(widest, f) + (twelve_ ? gap_ + suffix_w_ : 0);
+      int w = text_w(widest, f) + (twelve_ ? gap_ + ampm_w(ampm_for(digit_h(f))) : 0);
       if (seconds_) w += gap_ + text_w("00", seconds_font_for(f, sizes, fallback));
       if (digit_h(f) <= room_h && w <= width_ * 92 / 100) {
         time_font_ = f;
@@ -106,9 +127,9 @@ class ClockView {
     if (seconds_) secs_font_ = seconds_font_for(time_font_, sizes, fallback);
     int digit_top = 0;
     digit_box(time_font_, digit_top, digits_h_);
-    if (twelve_ && digits_h_ / 3 < ui::line_height(Font::TITLE)) {
-      suffix_font = Font::BODY;
-      suffix_w_ = std::max(ui::text_width("AM", suffix_font), ui::text_width("PM", suffix_font));
+    if (twelve_) {
+      suffix_font_ = ampm_for(digits_h_);
+      suffix_w_ = ampm_w(suffix_font_);
     }
 
     const int block_h = digits_h_ + (date_h ? date_gap_ + date_h : 0);
@@ -137,8 +158,9 @@ class ClockView {
     }
 
     if (twelve_) {
-      suffix_ = ui::label(parent, suffix_font, theme::MUTED);
-      lv_obj_set_size(suffix_, suffix_w_, ui::line_height(suffix_font));
+      suffix_ = ui::label(parent, Font::TITLE, theme::INK_SOFT);
+      lv_obj_set_style_text_font(suffix_, suffix_font_, 0);
+      lv_obj_set_size(suffix_, suffix_w_ + 2, suffix_font_->line_height);
     }
     if (date_h) {
       date_ = ui::label(parent, Font::BODY, theme::MUTED);
@@ -193,7 +215,8 @@ class ClockView {
 
   void recolor() {
     if (time_) ui::set_color(time_, theme::INK);
-    for (lv_obj_t *o : {secs_, suffix_, date_, note_})
+    if (suffix_) ui::set_color(suffix_, theme::INK_SOFT);
+    for (lv_obj_t *o : {secs_, date_, note_})
       if (o) ui::set_color(o, theme::MUTED);
   }
 
@@ -219,7 +242,8 @@ class ClockView {
       lv_obj_set_pos(secs_, x + gap_, baseline_ - ascent(secs_font_));
       x += gap_ + secs_w_;
     }
-    if (suffix_) lv_obj_set_pos(suffix_, x + gap_, top_);
+    // AM/PM with the top of its capitals on the top of the digits.
+    if (suffix_) lv_obj_set_pos(suffix_, x + gap_, top_ - cap_top(suffix_font_));
   }
 
   void show_all(bool shown) {
@@ -267,7 +291,7 @@ class ClockView {
   int digits_h_ = 0, time_y_ = 0, baseline_ = 0, date_gap_ = 12, secs_w_ = 0, suffix_w_ = 0;
   int date_mode_ = 2;  // 0 none, 1 short, 2 long
   bool seconds_ = false, twelve_ = false, visible_ = true;
-  const lv_font_t *time_font_{}, *secs_font_{}, *date_font_{};
+  const lv_font_t *time_font_{}, *secs_font_{}, *date_font_{}, *suffix_font_{};
   std::string time_text_;
   lv_obj_t *box_{}, *time_{}, *secs_{};
   lv_obj_t *suffix_{}, *date_{}, *note_{};
@@ -295,10 +319,149 @@ class ClockSaver : public tessera::Saver {
   ClockView view_;
 };
 
+// A face of the screensaver's music: while something plays, the Big clock and what plays take turns every 30 seconds
+// (or as set): the cover large at the left, the title in large bold letters and the artist beside it, the time small in
+// the corner. When nothing plays the screensaver goes to its Clock step, where the Big clock face shows the time and date.
+class NowPlayingSaver : public tessera::Saver {
+ public:
+  explicit NowPlayingSaver(const BigClock *plugin) : plugin_(plugin), clock_(plugin) {}
+
+  void show(const tessera::SaverContext &c) override {
+    w_ = c.width;
+    h_ = c.height;
+    const std::string every = c.options["every"] | "30";
+    every_ = std::max(5, atoi(every.c_str()));
+    clock_box_ = layer(c.parent);
+    media_box_ = layer(c.parent);
+    clock_.build(clock_box_, w_, h_, c.options, true);
+
+    const int m = std::max(ui::px(16), h_ / 14);
+    const int side = std::min(h_ - 2 * m, w_ * 42 / 100);
+    if (ui::pictures()) {
+      cover_ = ui::picture(media_box_);
+      lv_obj_set_size(cover_, side, side);
+      lv_obj_set_pos(cover_, m, (h_ - side) / 2);
+      lv_obj_set_style_radius(cover_, ui::px(16), 0);
+    }
+    text_x_ = cover_ ? m + side + m : m;
+    text_w_ = std::max(1, w_ - text_x_ - m);
+    // The title: the plugin's bold Roboto when it brings one (with the screen's font for letters it lacks).
+    title_font_ = ui::font(Font::HEADLINE);
+    if (plugin_->title_font()) {
+      lv_font_t *f = const_cast<lv_font_t *>(plugin_->title_font()->get_lv_font());
+      f->fallback = ui::font(Font::HEADLINE);
+      title_font_ = f;
+    }
+    title_ = ui::text(media_box_, Font::HEADLINE, theme::INK);
+    lv_obj_set_style_text_font(title_, title_font_, 0);
+    artist_ = ui::text(media_box_, Font::HEADLINE, theme::INK_SOFT);
+    small_time_ = ui::label(media_box_, Font::HEADLINE, theme::MUTED);
+    lv_obj_set_style_text_align(small_time_, LV_TEXT_ALIGN_RIGHT, 0);
+    lv_obj_set_size(small_time_, w_ / 3, ui::line_height(Font::HEADLINE));
+    lv_obj_set_pos(small_time_, w_ - w_ / 3 - m, m / 2);
+    show_clock(true);
+  }
+
+  // The music step's player: what plays, the cover ("step:") and whether it plays.
+  void on_state(JsonObjectConst data) override {
+    const std::string state = data["state"] | "";
+    playing_ = state == "playing";
+    const std::string title = data["title"] | "";
+    const std::string artist = data["artist"] | "";
+    if (title != title_text_ || artist != artist_text_) {
+      title_text_ = title;
+      artist_text_ = artist;
+      lay_out_words();
+    }
+    if (cover_) ui::set_picture(cover_, data["picture"] | "", tessera::Fit::COVER);
+    if (!playing_ || title_text_.empty()) show_clock(true);
+  }
+
+  void on_tick(uint32_t epoch) override {
+    clock_.tick(epoch);
+    if (!epoch) return;
+    const tessera::LocalTime t = tessera::local_time(epoch);
+    char buf[12];
+    const std::string sample = tessera::clock_text(13 * 3600 + 7 * 60);
+    const bool twelve = sample.find('M') != std::string::npos || sample.find('m') != std::string::npos;
+    int hour = t.hour;
+    if (twelve) {
+      hour %= 12;
+      if (hour == 0) hour = 12;
+    }
+    snprintf(buf, sizeof buf, twelve ? "%d:%02d" : "%02d:%02d", hour, static_cast<int>(t.minute));
+    ui::set_text(small_time_, std::string(buf));
+    if (!switched_at_) switched_at_ = epoch;
+    if (playing_ && !title_text_.empty() && epoch >= switched_at_ + every_) {
+      show_clock(!clock_shown_);
+      switched_at_ = epoch;
+    }
+  }
+
+ private:
+  static lv_obj_t *layer(lv_obj_t *parent) {
+    lv_obj_t *o = lv_obj_create(parent);
+    lv_obj_remove_style_all(o);
+    lv_obj_remove_flag(o, LV_OBJ_FLAG_CLICKABLE);
+    lv_obj_remove_flag(o, LV_OBJ_FLAG_SCROLLABLE);
+    lv_obj_set_size(o, lv_pct(100), lv_pct(100));
+    lv_obj_set_pos(o, 0, 0);
+    return o;
+  }
+
+  void show_clock(bool clock) {
+    clock_shown_ = clock;
+    if (clock) {
+      lv_obj_remove_flag(clock_box_, LV_OBJ_FLAG_HIDDEN);
+      lv_obj_add_flag(media_box_, LV_OBJ_FLAG_HIDDEN);
+    } else {
+      lv_obj_add_flag(clock_box_, LV_OBJ_FLAG_HIDDEN);
+      lv_obj_remove_flag(media_box_, LV_OBJ_FLAG_HIDDEN);
+    }
+  }
+
+  static int words_h(const std::string &text, const lv_font_t *font, int width) {
+    lv_point_t size;
+    lv_text_get_size(&size, text.c_str(), font, 0, 0, width, LV_TEXT_FLAG_NONE);
+    return size.y;
+  }
+
+  // The title (at most three lines of the bold font, else the screen's) and the artist under it, in the middle of the
+  // column beside the cover.
+  void lay_out_words() {
+    const lv_font_t *tf = title_font_;
+    if (words_h(title_text_, tf, text_w_) > tf->line_height * 3) tf = ui::font(Font::HEADLINE);
+    lv_obj_set_style_text_font(title_, tf, 0);
+    ui::set_text(title_, title_text_);
+    ui::set_text(artist_, artist_text_);
+    const int th = std::min<int>(words_h(title_text_, tf, text_w_), tf->line_height * 3);
+    const lv_font_t *af = ui::font(Font::HEADLINE);
+    const int ah = artist_text_.empty() ? 0 : std::min<int>(words_h(artist_text_, af, text_w_), af->line_height * 2);
+    const int gap = ui::px(12);
+    const int block = th + (ah ? gap + ah : 0);
+    const int y = std::max(0, (h_ - block) / 2);
+    lv_obj_set_size(title_, text_w_, th);
+    lv_obj_set_pos(title_, text_x_, y);
+    lv_obj_set_size(artist_, text_w_, ah);
+    lv_obj_set_pos(artist_, text_x_, y + th + gap);
+  }
+
+  const BigClock *plugin_;
+  ClockView clock_;
+  int w_ = 0, h_ = 0, text_x_ = 0, text_w_ = 0;
+  uint32_t every_ = 30, switched_at_ = 0;
+  bool playing_ = false, clock_shown_ = true;
+  std::string title_text_, artist_text_;
+  const lv_font_t *title_font_{};
+  lv_obj_t *clock_box_{}, *media_box_{}, *cover_{}, *title_{}, *artist_{}, *small_time_{};
+};
+
 void BigClock::setup() {
   add_tile("clock", [this]() { return new ClockTile(this); });
   // The id and step are the manifest's: a face of the screensaver's clock.
   add_saver("clock", tessera::SaverStep::CLOCK, [this]() { return new ClockSaver(this); });
+  // A face of the music step: the clock and what plays, taking turns.
+  add_saver("nowplaying", tessera::SaverStep::MEDIA, [this]() { return new NowPlayingSaver(this); });
 }
 
 }  // namespace esphome::big_clock
