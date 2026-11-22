@@ -1,8 +1,10 @@
 # Big clock
 
 A clock tile whose digits fill the tile. Tessera's own fonts stop at 64 px, and drawing them larger blurs them, so
-this plugin brings the screen's own Roboto in four large sizes (96 to 240 px, only the digits and the colon, about
-400 KB of flash) and the tile takes the largest that fits. It is meant for the larger boards with flash to spare.
+this plugin brings the screen's own Roboto in six large sizes for the time (96 to 288 px, only the digits and the
+colon) and two for the date (36 and 60 px), about 700 KB of flash, and the tile takes the largest that fits. It also
+adds a **screensaver face** for the Clock step: the same clock on the whole black glass with a larger date under it
+(Screen settings > Screensaver > Clock > Face: Big clock). It is meant for the larger boards with flash to spare.
 
 - The time follows the screen's 12/24-hour setting; a 12-hour clock shows AM/PM beside the digits.
 - Under it, the weekday and date: long ("Saturday, November 21"), short ("Sat Nov 21") or none. The long form falls

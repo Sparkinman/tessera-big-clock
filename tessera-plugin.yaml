@@ -2,7 +2,7 @@
 # set in large Roboto (the screen's own typeface) at real sizes the plugin brings, so they stay sharp. No data, no
 # network, no entity: the screen's own clock.
 id: big_clock
-version: 0.5.0
+version: 0.5.1
 api: "0.14"
 icon: clock-digital
 maintainer: Paul McNeil
