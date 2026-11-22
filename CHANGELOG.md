@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.6.0
+
+- AM/PM in the plugin's own Roboto, about a third as tall as the digits, on the tile and the screensaver.
+- A second screensaver face for the Music playing step: the Big clock and what plays (cover, title, artist) take turns
+  every 30 seconds (15 s, 30 s or 1 min). With nothing playing the screensaver shows the Clock step as before.
+
 ## 0.5.1
 
 - Changelog headings in the format Tessera's check reads; the README notes the larger screens it is made for.

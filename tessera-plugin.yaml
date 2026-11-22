@@ -2,7 +2,7 @@
 # set in large Roboto (the screen's own typeface) at real sizes the plugin brings, so they stay sharp. No data, no
 # network, no entity: the screen's own clock.
 id: big_clock
-version: 0.5.1
+version: 0.6.0
 api: "0.14"
 icon: clock-digital
 maintainer: Paul McNeil
@@ -12,7 +12,7 @@ topics: [time]
 requires:
   esphome: 2026.6.2
 boards: any
-flash_kb: 700
+flash_kb: 800
 
 tiles:
   - id: clock
@@ -58,3 +58,17 @@ savers:
           - { value: short, label: date_short }
           - { value: none, label: date_none }
       - { id: seconds, kind: toggle, label: seconds, hint: seconds_hint, default: false }
+  # A face of the music step: the clock and what plays take turns. A person picks it under Face in the drawer of Music
+  # playing, and puts Music playing before Clock in the steps.
+  - id: nowplaying
+    name: np_name
+    icon: clock-digital
+    step: media
+    # Two layers: the clock's parts, and the cover with three lines of words.
+    memory: 3000
+    # The cover of what plays (step:).
+    pictures: 1
+    example: np_example
+    options:
+      - { id: every, kind: choice, label: every, hint: every_hint, default: "30", choices: [{ value: "15", label: every_15 }, { value: "30", label: every_30 }, { value: "60", label: every_60 }] }
+      - { id: date, kind: choice, label: date, hint: date_hint, default: long, choices: [{ value: long, label: date_long }, { value: short, label: date_short }, { value: none, label: date_none }] }

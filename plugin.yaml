@@ -16,6 +16,14 @@ font:
     size: 60
     bpp: 4
     glyphs: " ,0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz"
+  - { id: big_clock_ampm_40, file: "${FONT_DIR}/Roboto-500.ttf", size: 40, bpp: 4, glyphs: "AMP" }
+  - { id: big_clock_ampm_64, file: "${FONT_DIR}/Roboto-500.ttf", size: 64, bpp: 4, glyphs: "AMP" }
+  - { id: big_clock_ampm_96, file: "${FONT_DIR}/Roboto-500.ttf", size: 96, bpp: 4, glyphs: "AMP" }
+  - id: big_clock_title
+    file: "${FONT_DIR}/Roboto-700.ttf"
+    size: 52
+    bpp: 4
+    glyphs: " !%&'()*+,-./0123456789:;?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[]_abcdefghijklmnopqrstuvwxyz"
   - id: big_clock_date
     file: "${FONT_DIR}/Roboto-500.ttf"
     size: 36
@@ -26,3 +34,5 @@ big_clock:
   fonts: [big_clock_96, big_clock_128, big_clock_160, big_clock_192, big_clock_224, big_clock_288]
   date_font: big_clock_date
   saver_date_font: big_clock_saver_date
+  ampm_fonts: [big_clock_ampm_40, big_clock_ampm_64, big_clock_ampm_96]
+  title_font: big_clock_title
