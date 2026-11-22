@@ -1,0 +1,28 @@
+# What a screen gets when it takes this plugin: the component, and its own Roboto in a few sizes. Tessera includes this
+# file from the screen's <name>.plugins.yaml and adds this plugin's components/ folder as an ESPHome external component.
+#
+# Tessera's largest font is 64 px, and drawing it larger only blurs it. So the time gets real large sizes of the same
+# Roboto the screen's other text uses, with only the digits and the colon, so each costs little flash. The tile takes
+# the largest that fits. The date gets one size a step above the screen's largest text font.
+font:
+  - { id: big_clock_96, file: "${FONT_DIR}/Roboto-500.ttf", size: 96, bpp: 4, glyphs: "0123456789:" }
+  - { id: big_clock_128, file: "${FONT_DIR}/Roboto-500.ttf", size: 128, bpp: 4, glyphs: "0123456789:" }
+  - { id: big_clock_160, file: "${FONT_DIR}/Roboto-500.ttf", size: 160, bpp: 4, glyphs: "0123456789:" }
+  - { id: big_clock_192, file: "${FONT_DIR}/Roboto-500.ttf", size: 192, bpp: 4, glyphs: "0123456789:" }
+  - { id: big_clock_224, file: "${FONT_DIR}/Roboto-500.ttf", size: 224, bpp: 4, glyphs: "0123456789:" }
+  - { id: big_clock_288, file: "${FONT_DIR}/Roboto-500.ttf", size: 288, bpp: 4, glyphs: "0123456789:" }
+  - id: big_clock_saver_date
+    file: "${FONT_DIR}/Roboto-500.ttf"
+    size: 60
+    bpp: 4
+    glyphs: " ,0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz"
+  - id: big_clock_date
+    file: "${FONT_DIR}/Roboto-500.ttf"
+    size: 36
+    bpp: 4
+    glyphs: " ,0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz"
+
+big_clock:
+  fonts: [big_clock_96, big_clock_128, big_clock_160, big_clock_192, big_clock_224, big_clock_288]
+  date_font: big_clock_date
+  saver_date_font: big_clock_saver_date

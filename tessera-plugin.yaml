@@ -1,0 +1,60 @@
+# Big clock: the time in digits as large as the tile allows, with the weekday and the date under it. The digits are
+# set in large Roboto (the screen's own typeface) at real sizes the plugin brings, so they stay sharp. No data, no
+# network, no entity: the screen's own clock.
+id: big_clock
+version: 0.5.0
+api: "0.14"
+icon: clock-digital
+maintainer: Paul McNeil
+license: MIT
+stage: beta
+topics: [time]
+requires:
+  esphome: 2026.6.2
+boards: any
+flash_kb: 700
+
+tiles:
+  - id: clock
+    name: tile_name
+    icon: clock-digital
+    sizes: { min: 1x1, max: 6x6 }
+    # The time box with its one or two labels, the AM/PM, the date and a waiting note.
+    memory: 4000
+    example: tile_example
+    options:
+      - id: date
+        kind: choice
+        label: date
+        hint: date_hint
+        default: long
+        choices:
+          - { value: long, label: date_long }
+          - { value: short, label: date_short }
+          - { value: none, label: date_none }
+      - id: seconds
+        kind: toggle
+        label: seconds
+        hint: seconds_hint
+        default: false
+
+savers:
+  # A face of the screensaver's clock: a person picks it under Face in the drawer of the Clock step.
+  - id: clock
+    name: saver_name
+    icon: clock-digital
+    step: clock
+    # The time box with one or two labels, the AM/PM, the date and a waiting note.
+    memory: 1500
+    example: saver_example
+    options:
+      - id: date
+        kind: choice
+        label: date
+        hint: date_hint
+        default: long
+        choices:
+          - { value: long, label: date_long }
+          - { value: short, label: date_short }
+          - { value: none, label: date_none }
+      - { id: seconds, kind: toggle, label: seconds, hint: seconds_hint, default: false }
